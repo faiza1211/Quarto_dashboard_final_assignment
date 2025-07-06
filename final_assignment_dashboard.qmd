@@ -112,7 +112,7 @@ fig_avg = px.line(
     y="avg_suicides",
     labels={"year": "Year", "avg_suicides": "Average Number of Suicides per 100K"},
     title="Average Suicide Rate per 100k Globally during 2000-2019",markers=True
-).update_layout(template="plotly_white", showlegend=False)
+).update_layout(template="plotly_white", title_font_size=20, showlegend=False)
 
 # total chart
 fig_total = px.line(
@@ -121,7 +121,7 @@ fig_total = px.line(
     y="total_suicides",
     labels={"year": "Year", "total_sucides": "Total Number of Suicides per 100k"},
     title="Total Number of Suicide Rate per 100k Globally during 2001-2019", markers=True
-).update_layout(template="plotly_white", height=1000, showlegend=False)
+).update_layout(template="plotly_white", height=1000, title_font_size=20,showlegend=False)
 
 
 # top ten  countries having highest suicide rate
@@ -147,6 +147,7 @@ fig_bar_country = px.bar(
 ).update_layout(
     showlegend=False,
     legend_title_text="Country",
+    title_font_size=20,
     template="plotly_white"
 )
 
@@ -222,7 +223,7 @@ fig_continent = px.bar(
     barmode="group",
     labels={"continent_mean": "Average Suicides per 100k", "year": "Year"},
     title="Average Suicide Rate per 100k per Continent Over Time",
-).update_layout(template="plotly_white", showlegend= False )
+).update_layout(template="plotly_white",title_font_size=20, showlegend= False )
 
 # Filter for European countries
 european_countries = data_frame_final.query("continent == 'Europe'")
@@ -255,7 +256,7 @@ fig5 = (
         labels={"crude_rate_per100k": "Suicides per 100k", "year": "Year"},
         title="Suicide Rate Trends in Top 10 European Countries (2000–2019)",markers=True
     )
-    .update_layout(template="plotly_white", showlegend=False)
+    .update_layout(template="plotly_white",title_font_size=20, showlegend=False)
     .update_xaxes(tickangle=45)
     .update_yaxes(title_font=dict(size=10, family='Arial', color='black')))
 ```
@@ -312,6 +313,7 @@ fig6 = px.bar(
 ).update_layout(
     coloraxis_showscale=False,
     showlegend=False,
+    title_font_size=20,
     template="plotly_white",
     height=1000,
 )
@@ -331,6 +333,7 @@ fig8 = px.bar(
 ).update_layout(
     coloraxis_showscale=False,
     showlegend=False,
+    title_font_size=20,
     template="plotly_white",
     height=1000,
 )
@@ -346,6 +349,7 @@ fig7 = px.violin(
 ).update_layout(
     coloraxis_showscale=False,
     showlegend=False,
+    title_font_size=20,
     template="plotly_white",
     height=1000,
 )
@@ -384,7 +388,7 @@ map_fig = px.choropleth(
     hover_name="country",
     title="Map of Countries by Suicidal Rates-2019 ",
     color_continuous_scale="Blues",
-).update_layout(coloraxis_showscale=False)
+).update_layout(coloraxis_showscale=False, title_font_size=20)
 map_fig
 ```
 
@@ -416,7 +420,7 @@ fig_continent
 The overall decline in suicide rates from 2000 to 2019 can be attributed to increased mental health awareness, improved access to treatment, and the implementation of national and global suicide prevention strategies. Enhanced social support systems, stricter control of lethal means, and progress in mental health services have played a significant role. Additionally, socioeconomic improvements and targeted interventions in high-risk groups have contributed to reducing suicide rates in many regions, although disparities still exist across countries and populations.
 
 # 2019
-## Row 1 {height="45%"}
+## Row 1 {height="50%"}
 ### Column {width="50%"}
 ```{python}
 
@@ -451,7 +455,7 @@ fig7
 fig5
 ```
 
-## Row  {height="45%"}
+## Row  {height="40%"}
 ### Column 
 ```{python}
 fig6
@@ -486,6 +490,7 @@ fig_gdp_continent = px.scatter(
 ).update_layout(
     coloraxis_showscale=False,
     showlegend=False,
+    title_font_size=20,
     template="plotly_white"
 )
 fig_gdp_continent.show()
@@ -510,6 +515,7 @@ figline_gdp = px.line(
     labels={"crude_rate_per100k": "Suicides per 100k", "gdp_percapita": "GDP per Capita"},markers= True
 ).update_layout(coloraxis_showscale=False,
     showlegend=False,
+    title_font_size=20,
     template="plotly_white"
     ).update_xaxes(
         tickangle=45,).update_yaxes(title_font=dict(size=10, family='Arial', color='black'))
@@ -525,6 +531,7 @@ size='pop_2015',
 color='continent_2019',
 title="GDP per Capita vs Suicidal Rate (2015)").update_layout(
     showlegend=False,
+    title_font_size=20,
     template="plotly_white"
     ).update_xaxes(
         tickangle=45,
@@ -539,6 +546,7 @@ hover_data='country',
 size='pop_2019',
 color='continent_2019',title="GDP per Capita vs Suicidal Rate (2019)" ).update_layout(
     showlegend=False,
+    title_font_size=20,
     template="plotly_white"
     ).update_xaxes(
         tickangle=45,
@@ -562,6 +570,7 @@ fig_chng_gdp = px.scatter(
         "perchng_suicidalrate": "% Change in Suicide Rate"
     }).update_layout(
     showlegend=False,
+    title_font_size=20,
     template="plotly_white"
 )
 fig_chng_gdp.show()
