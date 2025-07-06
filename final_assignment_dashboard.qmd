@@ -357,13 +357,13 @@ fig7 = px.violin(
 
 ## {height="25%"}
 
-:::{.valuebox title="Highest Suicidal Rate (2000–2019)"  color="primary" icon="arrow-up"}
-`{python} str(high_rate)`
-`{python} high_country` 
+:::{.valuebox title="Highest Suicidal Rate(2000–2019)" color="primary" icon="arrow-up"}
+`{python} str(high_rate)`  
+`{python} high_country`
  has Highest Suicidal Rate
 :::
 
-:::{.valuebox title="Lowest Suicidal Rate (2000–2019)" color="secondary" icon="arrow-down"}
+:::{.valuebox title="Lowest Suicidal Rate(2000–2019)" color="secondary" icon="arrow-down"}
 `{python} str(low_rate)`  
 `{python} low_country`
  has Lowest Suicidal Rate
@@ -416,9 +416,8 @@ fig_continent
 The overall decline in suicide rates from 2000 to 2019 can be attributed to increased mental health awareness, improved access to treatment, and the implementation of national and global suicide prevention strategies. Enhanced social support systems, stricter control of lethal means, and progress in mental health services have played a significant role. Additionally, socioeconomic improvements and targeted interventions in high-risk groups have contributed to reducing suicide rates in many regions, although disparities still exist across countries and populations.
 
 # 2019
-## Row 1 {height="40%"}
-### column {width="50%"}
-
+## Row 1 {height="45%"}
+### Column {width="50%"}
 ```{python}
 
 reg_sum = (
@@ -452,20 +451,17 @@ fig7
 fig5
 ```
 
-## Row {height= "40%"}
-### column {width= "50%"}
-
+## Row  {height="45%"}
+### Column 
 ```{python}
 fig6
 ```
-
-### column {width= '50%'}
 
 ```{python}
 fig8
 ```
 
-## Row {height="20%"}
+## Row {height="10%"}
 Based on the data, Lesotho had the highest crude suicide rate per 100,000 population in 2019, a figure that remains consistent with WHO reports. This rate is calculated by dividing the total number of suicide deaths by the population of the respective country during the same year. In contrast, countries like Syria, Jordan, and Oman reported the lowest suicide rates, according to data from Gapminder.
 
 # SucidalRate& GDP
