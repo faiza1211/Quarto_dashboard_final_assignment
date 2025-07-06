@@ -171,10 +171,7 @@ fig_line = px.line(
         category_orders={"country": top_order},
         title="Suicide Rate per 100k Over Years (Top 10 Countries)",
         labels={"crude_rate_per100k": "Suicides Rate", "year": "Year"},
-        markers=True,
-        facet_col="country",
-        facet_col_wrap=5
-
+        markers=True
     ) .update_layout(
         template="plotly_white",
         showlegend=False,
@@ -358,18 +355,16 @@ fig7 = px.violin(
 
 # Home
 
-## {height="30%"}
+## {height="25%"}
 
 :::{.valuebox title="Highest Suicidal Rate (2000–2019)"  color="primary" icon="arrow-up"}
 `{python} str(high_rate)`
-
 `{python} high_country` 
  has Highest Suicidal Rate
 :::
 
 :::{.valuebox title="Lowest Suicidal Rate (2000–2019)" color="secondary" icon="arrow-down"}
 `{python} str(low_rate)`  
-
 `{python} low_country`
  has Lowest Suicidal Rate
 :::
@@ -378,8 +373,8 @@ fig7 = px.violin(
 Decline
 :::
 
-## Row  {height="60%"}
-#### Column {width= "25%"}
+## Row  {height="65%"}
+#### Column 
 
 ```{python}
 map_fig = px.choropleth(
@@ -394,12 +389,12 @@ map_fig
 ```
 
 ### {.tabset }
-#### Average Number of Suicide(2000-2019)
+#### Average Suicide Rate(2000-2019)
 ```{python}
 fig_avg
 ```
 
-#### Total Number of Suicide(2000-2019)
+#### Total Suicide Rate(2000-2019)
 ```{python}
 fig_total
 ```
@@ -410,22 +405,12 @@ fig_total
 fig_bar_country
 ```
 
-#### Trend of Top 10 Countries
-```{python}
-fig_line
-```
-
-### {.tabset}
 #### Avg. Suicidal Rate per Continent(2000-2019)
 
 ```{python}
 fig_continent
 ```
 
-#### European Countries suicidal rate(2000-2019)
-```{python}
-fig5
-```
 
 ## Row  {height="10%"}
 The overall decline in suicide rates from 2000 to 2019 can be attributed to increased mental health awareness, improved access to treatment, and the implementation of national and global suicide prevention strategies. Enhanced social support systems, stricter control of lethal means, and progress in mental health services have played a significant role. Additionally, socioeconomic improvements and targeted interventions in high-risk groups have contributed to reducing suicide rates in many regions, although disparities still exist across countries and populations.
@@ -456,10 +441,15 @@ reg_sum = (
 itables.show(reg_sum)
 ```
 
-### Column {width="50%"}
-
+### {.tabset}
+#### Suicidal Rate Continent(2019)
 ```{python}
 fig7
+```
+
+#### European Countries suicidal rate(2000-2019)
+```{python}
+fig5
 ```
 
 ## Row {height= "40%"}
@@ -507,23 +497,7 @@ fig_gdp_continent.show()
 
 ### Column
 ```{python}
-fig_line1 = px.line(
-        top_10_data,
-        x="year",
-        y="crude_rate_per100k",
-        color="country",
-        category_orders={"country": top_order},
-        title="Suicide Rate per 100k Over Years (Top 10 Countries)",
-        labels={"crude_rate_per100k": "Suicides Rate", "year": "Year"},
-        markers=True,
-    ) .update_layout(
-        template="plotly_white",
-        showlegend=False,
-        title_font_size=20,
-    ).update_xaxes(
-        tickangle=45,
-    ).update_yaxes(title_font=dict(size=10, family='Arial', color='black'))
-fig_line1.show()
+fig_line.show()
 ```
 
 ### Column
@@ -599,6 +573,7 @@ fig_chng_gdp.show()
 ```
 
 ## Row {height= "10%"}
+Europe, despite having the highest GDP, also reports the highest suicide rates. However, over time, the suicide rate in Europe has shown a declining trend. In contrast, Lesotho, with one of the lowest GDPs, has experienced a rising suicide rate. 
 
 # DATA DOWNLOAD
 
