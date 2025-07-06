@@ -1,0 +1,620 @@
+---
+title: "Gap Minder_mental Health Data"
+author: "Faiza Jamil"
+format: dashboard
+theme: united
+---
+
+```{python}
+# import libraries
+import plotly.express as px
+import pandas as pd
+import numpy as np
+import itables
+import country_converter as coco
+pd.options.mode.copy_on_write = True
+# page1  data preparation
+# dataset construction
+# mental_health data
+sucide_data = pd.read_csv("data/suicide_total_deaths.csv")
+sucide_data_long = sucide_data.melt(
+    id_vars=["country"], var_name="year", value_name="num_death"
+).sort_values(by=["country", "year"])
+# Convert 'year' from string to integer
+sucide_data_long["year"] = sucide_data_long["year"].astype(int)
+# cleaning of data
+has_k = sucide_data_long["num_death"].str.contains("k")
+values = sucide_data_long["num_death"].str.replace("k", "")
+sucide_data_long["num_death"] = np.where(
+    has_k, values.astype(float) * 1000, values.astype(float)
+)
+
+# filter for the years 2000 to 2019
+sucide_subset = sucide_data_long.query("year>=2000 and year<=2019")
+
+# population data
+pop_data = pd.read_csv("data/pop.csv")
+pop_data_long = pop_data.melt(
+    id_vars=["country"], var_name="year", value_name="pop"
+).sort_values(by=["country", "year"])
+
+# cleaning of data
+def parse_data(val):
+    val = str(val).strip()
+    if "M" in val:
+        return float(val.replace("M", "")) * 1_000_000
+    elif "k" in val:
+        return float(val.replace("k", "")) * 1_000
+    elif "B" in val:
+        return float(val.replace("B", " ")) * 1_000_000_000
+    else:
+        return float(val)
+
+# apply the function
+parse_data_vec = np.vectorize(parse_data)
+
+pop_data_long["pop"] = parse_data_vec(pop_data_long["pop"])
+pop_data_long["year"] = pop_data_long["year"].astype(int)
+
+# filter data for 2000_2019
+pop_subset = pop_data_long.query("year>=2000 and year<=2019")
+
+# merge sucidal data with population data
+sucide_pop_data = pd.merge(
+    sucide_subset, pop_subset, on=["country", "year"], how="inner"
+)
+# create new column sucidalrate per population
+sucide_pop_data["crude_rate_per100k"] = (
+    sucide_pop_data["num_death"] / sucide_pop_data["pop"]
+) * 100000
+
+# add continent and country code
+# countries and continent
+country_continents = pd.read_csv(
+    "https://raw.githubusercontent.com/the-graph-courses/idap_book/main/data/country_continents.csv"
+)
+
+data_set1 = pd.merge(
+    sucide_pop_data,
+    country_continents,
+    left_on="country",
+    right_on="country.name.en",
+    how="left",
+)
+data_set1["country"] = data_set1["country"].replace("UAE", "United Arab Emirates")
+import country_converter as coco
+
+cc = coco.CountryConverter()
+data_set1["country_code"] = cc.convert(data_set1["country"], to="ISO3")
+
+data_set1["continent_mean"] = data_set1.groupby(["continent", "year"])[
+    "crude_rate_per100k"
+].transform("mean")
+
+
+# Average & total Number of suicide rate per million
+avg_suicides_100k = (
+    data_set1.groupby("year")["crude_rate_per100k"].mean().reset_index()
+)
+total_suicides_100k = (
+    data_set1.groupby("year")["crude_rate_per100k"].sum().reset_index()
+)
+
+avg_suicides_100k.columns = ["year", "avg_suicides"]
+total_suicides_100k.columns = ["year", "total_suicides"]
+
+
+# Plotting the line chart total and average
+# avg chart
+fig_avg = px.line(
+    avg_suicides_100k,
+    x="year",
+    y="avg_suicides",
+    labels={"year": "Year", "avg_suicides": "Average Number of Suicides per 100K"},
+    title="Average Suicide Rate per 100k Globally during 2000-2019",markers=True
+).update_layout(template="plotly_white", showlegend=False)
+
+# total chart
+fig_total = px.line(
+    total_suicides_100k,
+    x="year",
+    y="total_suicides",
+    labels={"year": "Year", "total_sucides": "Total Number of Suicides per 100k"},
+    title="Total Number of Suicide Rate per 100k Globally during 2001-2019", markers=True
+).update_layout(template="plotly_white", height=1000, showlegend=False)
+
+
+# top ten  countries having highest suicide rate
+# sum of crude rate group by countries
+countries_name = (
+    data_set1.groupby("country")["crude_rate_per100k"].sum().reset_index()
+)
+countries_name.columns = ["country", "total_suicidesperPopulaton"]
+
+top_ten_country = countries_name.sort_values(
+    "total_suicidesperPopulaton", ascending=False
+).head(10)
+# bar graph showing top 10 countries
+fig_bar_country = px.bar(
+    top_ten_country,
+    x="total_suicidesperPopulaton",
+    y="country",
+    color="country",
+    title="Top 10 Countries by Suicide Rate per Population",
+    labels={"total_suicidesperPopulaton": "Suicides per 100k"},
+    orientation="h",
+    color_continuous_scale="Blues"
+).update_layout(
+    showlegend=False,
+    legend_title_text="Country",
+    template="plotly_white"
+)
+
+# Trend of top 10 countries
+top_10_countries_name = countries_name.sort_values(
+    "total_suicidesperPopulaton", ascending=False
+).head(10)["country"]
+# Filter original data for those top 10 countries
+top_10_data = data_set1[sucide_pop_data["country"].isin(top_10_countries_name)]
+top_order = (
+    top_10_data.groupby("country")["crude_rate_per100k"]
+    .sum()
+    .sort_values(ascending=False)
+    .index.tolist()
+)
+
+fig_line = px.line(
+        top_10_data,
+        x="year",
+        y="crude_rate_per100k",
+        color="country",
+        category_orders={"country": top_order},
+        title="Suicide Rate per 100k Over Years (Top 10 Countries)",
+        labels={"crude_rate_per100k": "Suicides Rate", "year": "Year"},
+        markers=True,
+        facet_col="country",
+        facet_col_wrap=5
+
+    ) .update_layout(
+        template="plotly_white",
+        showlegend=False,
+        title_font_size=20,
+    ).update_xaxes(
+        tickangle=45,
+    ).update_yaxes(title_font=dict(size=10, family='Arial', color='black'))
+
+
+# for value box
+
+high = (
+    countries_name.sort_values("total_suicidesperPopulaton", ascending=False)
+    .head(1)
+    .squeeze()
+)
+
+low = countries_name.sort_values("total_suicidesperPopulaton").head(1).squeeze()
+# Extract values
+high_country = high["country"]
+high_rate = round(high["total_suicidesperPopulaton"], 1)
+
+low_country = low["country"]
+low_rate = round(low["total_suicidesperPopulaton"], 1)
+
+```
+
+
+```{python}
+# gdp
+gdp = pd.read_csv("data/gdp_pcap_21.csv")
+gdp_long = gdp.melt(
+    id_vars=["country"], var_name="year", value_name="gdp_percapita"
+).sort_values(by=["country", "year"])
+
+gdp_long["gdp_percapita"] = gdp_long["gdp_percapita"].apply(parse_data)
+gdp_long["year"] = gdp_long["year"].astype(int)
+# filter the year
+gdp_long = gdp_long.query("year>=2000 & year<=2019")
+
+data_frame_final = pd.merge(data_set1, gdp_long, on=("country", "year"), how="left")
+
+fig_continent = px.bar(
+    data_frame_final,
+    x="year",
+    y="continent_mean",
+    color="continent",
+    barmode="group",
+    labels={"continent_mean": "Average Suicides per 100k", "year": "Year"},
+    title="Average Suicide Rate per 100k per Continent Over Time",
+).update_layout(template="plotly_white", showlegend= False )
+
+# Filter for European countries
+european_countries = data_frame_final.query("continent == 'Europe'")
+
+# Calculate average suicide rate per country of europe coontinent
+top_most_euro = (
+    european_countries.groupby("country")["crude_rate_per100k"].mean().reset_index()
+)
+
+# Get top 10 countries with highest average suicide rates
+top_most_euro = top_most_euro.sort_values("crude_rate_per100k", ascending=False).head(10)
+top_10_countries_europe = top_most_euro["country"].tolist()
+
+# Filter original data for only those top 10 countries
+top_10_data = european_countries[european_countries["country"].isin(top_10_countries_europe)]
+
+# Maintain order of countries in facets
+country_order = top_10_countries_europe
+
+# Create the line plot with facets
+fig5 = (
+    px.line(
+        top_10_data,
+        x="year",
+        y="crude_rate_per100k",
+        color="country",
+        facet_col="country",
+        facet_col_wrap=5,
+        category_orders={"country": country_order},
+        labels={"crude_rate_per100k": "Suicides per 100k", "year": "Year"},
+        title="Suicide Rate Trends in Top 10 European Countries (2000–2019)",markers=True
+    )
+    .update_layout(template="plotly_white", showlegend=False)
+    .update_xaxes(tickangle=45)
+    .update_yaxes(title_font=dict(size=10, family='Arial', color='black')))
+```
+```{python}
+# page2
+# data preperation
+data_2019 = data_frame_final.query("year in [2015, 2019]")
+# data_2019= data_frame_gdp_sucide.drop(columns=('country.name.en'))
+data_2019_wide = data_2019.pivot(
+    index=["country", "country_code"], columns="year"
+).reset_index()
+data_2019_wide.columns = [
+    "{}_{}".format(col[0], col[1]) if col[1] else col[0]
+    for col in data_2019_wide.columns
+]
+data_2019_wide.columns = data_2019_wide.columns.str.replace(
+    r"[^a-zA-Z0-9]", "_", regex=True
+)
+
+
+# Comparison from 2015 to 2019
+data_2019_wide["perchng_pop"] = (
+    (data_2019_wide["pop_2019"] - data_2019_wide["pop_2015"])
+    / data_2019_wide["pop_2015"]
+) * 100
+
+data_2019_wide["perchng_gdp"] = (
+    (data_2019_wide["gdp_percapita_2019"] - data_2019_wide["gdp_percapita_2015"])
+    / data_2019_wide["gdp_percapita_2015"]
+) * 100
+
+data_2019_wide["perchng_suicidalrate"] = (
+    (
+        data_2019_wide["crude_rate_per100k_2019"]
+        - data_2019_wide["crude_rate_per100k_2015"]
+    )
+    / data_2019_wide["crude_rate_per100k_2015"]
+) * 100
+data_2019_wide = data_2019_wide.drop(columns=["region_2015","continent_2015"])
+
+# country having highest sucidal rate in 2019
+highest_rate = data_2019_wide.sort_values(
+    "crude_rate_per100k_2019", ascending=False
+).head(10)
+fig6 = px.bar(
+    highest_rate,
+    y="country",
+    x="crude_rate_per100k_2019",
+    labels={"country": "Country", "crude_rate_per100k_2019": "Suicidal Rate per 100k"},
+    color="country",
+    title="Countries having highest suicidal Rate in 2019",
+    orientation="h",
+    color_continuous_scale="Blues",
+).update_layout(
+    coloraxis_showscale=False,
+    showlegend=False,
+    template="plotly_white",
+    height=1000,
+)
+
+# countries having lower sucidal rate
+lowest_rate = data_2019_wide.sort_values("crude_rate_per100k_2019").head(10)
+
+fig8 = px.bar(
+    lowest_rate,
+    y="country",
+    x="crude_rate_per100k_2019",
+    labels={"country": "Country", "crude_rate_per100k_2019": "Suicidal Rate per 100k"},
+    color="country",
+    title="Countries having Lowest suicidal Rate in 2019",
+    orientation="h",
+    color_continuous_scale="Blues",
+).update_layout(
+    coloraxis_showscale=False,
+    showlegend=False,
+    template="plotly_white",
+    height=1000,
+)
+# continent having highest sucidal rate
+fig7 = px.violin(
+    data_2019_wide,
+    x="continent_2019",
+    y="crude_rate_per100k_2019",
+    box=True,
+    color="continent_2019",
+    hover_data="country",
+    title="Comparison of Suicidal Rate among Continents in 2019",
+).update_layout(
+    coloraxis_showscale=False,
+    showlegend=False,
+    template="plotly_white",
+    height=1000,
+)
+
+
+```
+
+# Home
+
+## {height="30%"}
+
+:::{.valuebox title="Highest Suicidal Rate (2000–2019)"  color="primary" icon="arrow-up"}
+`{python} str(high_rate)`
+
+`{python} high_country` 
+ has Highest Suicidal Rate
+:::
+
+:::{.valuebox title="Lowest Suicidal Rate (2000–2019)" color="secondary" icon="arrow-down"}
+`{python} str(low_rate)`  
+
+`{python} low_country`
+ has Lowest Suicidal Rate
+:::
+
+:::{.valuebox title="Overall Trend (2000–2019)" color="dark" icon="graph-down-arrow"}
+Decline
+:::
+
+## Row  {height="60%"}
+#### Column {width= "25%"}
+
+```{python}
+map_fig = px.choropleth(
+    data_2019_wide,
+    locations="country_code",
+    color="crude_rate_per100k_2019",
+    hover_name="country",
+    title="Map of Countries by Suicidal Rates-2019 ",
+    color_continuous_scale="Blues",
+).update_layout(coloraxis_showscale=False)
+map_fig
+```
+
+### {.tabset }
+#### Average Number of Suicide(2000-2019)
+```{python}
+fig_avg
+```
+
+#### Total Number of Suicide(2000-2019)
+```{python}
+fig_total
+```
+
+### {.tabset }
+#### Top 10 Countries(2000-2019)
+```{python}
+fig_bar_country
+```
+
+#### Trend of Top 10 Countries
+```{python}
+fig_line
+```
+
+### {.tabset}
+#### Avg. Suicidal Rate per Continent(2000-2019)
+
+```{python}
+fig_continent
+```
+
+#### European Countries suicidal rate(2000-2019)
+```{python}
+fig5
+```
+
+## Row  {height="10%"}
+The overall decline in suicide rates from 2000 to 2019 can be attributed to increased mental health awareness, improved access to treatment, and the implementation of national and global suicide prevention strategies. Enhanced social support systems, stricter control of lethal means, and progress in mental health services have played a significant role. Additionally, socioeconomic improvements and targeted interventions in high-risk groups have contributed to reducing suicide rates in many regions, although disparities still exist across countries and populations.
+
+# 2019
+## Row 1 {height="40%"}
+### column {width="50%"}
+
+```{python}
+
+reg_sum = (
+    data_2019_wide.groupby("continent_2019")
+    .apply(
+        lambda g: pd.Series({
+            "Average Suicidal Rate 2015": g["crude_rate_per100k_2015"].mean(),
+            "Average Suicidal Rate 2019": g["crude_rate_per100k_2019"].mean(),
+            "Percent Change": ((g["crude_rate_per100k_2019"].mean() - g["crude_rate_per100k_2015"].mean()) / 
+                               g["crude_rate_per100k_2015"].mean()) * 100,
+            "Lowest Suicidal Rate (2019)": g["crude_rate_per100k_2019"].min(),
+            "Country with Lowest Suicidal Rate": g.loc[g["crude_rate_per100k_2019"].idxmin(), "country"],
+            "Highest Suicidal Rate (2019)": g["crude_rate_per100k_2019"].max(),
+            "Country with Highest Suicidal Rate": g.loc[g["crude_rate_per100k_2019"].idxmax(), "country"],
+        })
+    )
+    .round(2).reset_index()
+)
+
+itables.show(reg_sum)
+```
+
+### Column {width="50%"}
+
+```{python}
+fig7
+```
+
+## Row {height= "40%"}
+### column {width= "50%"}
+
+```{python}
+fig6
+```
+
+### column {width= '50%'}
+
+```{python}
+fig8
+```
+
+## Row {height="20%"}
+Based on the data, Lesotho had the highest crude suicide rate per 100,000 population in 2019, a figure that remains consistent with WHO reports. This rate is calculated by dividing the total number of suicide deaths by the population of the respective country during the same year. In contrast, countries like Syria, Jordan, and Oman reported the lowest suicide rates, according to data from Gapminder.
+
+# SucidalRate& GDP
+## Row (height="40%")
+### Column
+
+```{python}
+# GDP per capita per continent
+gdp=data_frame_final.groupby('continent')[['gdp_percapita', 'crude_rate_per100k']].mean().round(2).reset_index()
+fig_gdp_continent = px.scatter(
+    gdp,
+    x='crude_rate_per100k',
+    y='gdp_percapita',
+    color='continent',
+    size='gdp_percapita',
+    hover_name='continent',
+    title='GDP per Capita vs. Suicide Rate by Continent(2000-2019)',
+    labels={
+        'crude_rate_per100k': 'Average Suicide Rate per 100k',
+        'gdp_percapita': 'Average GDP per Capita'
+    }
+).update_layout(
+    coloraxis_showscale=False,
+    showlegend=False,
+    template="plotly_white"
+)
+fig_gdp_continent.show()
+```
+
+### Column
+```{python}
+fig_line1 = px.line(
+        top_10_data,
+        x="year",
+        y="crude_rate_per100k",
+        color="country",
+        category_orders={"country": top_order},
+        title="Suicide Rate per 100k Over Years (Top 10 Countries)",
+        labels={"crude_rate_per100k": "Suicides Rate", "year": "Year"},
+        markers=True,
+    ) .update_layout(
+        template="plotly_white",
+        showlegend=False,
+        title_font_size=20,
+    ).update_xaxes(
+        tickangle=45,
+    ).update_yaxes(title_font=dict(size=10, family='Arial', color='black'))
+fig_line1.show()
+```
+
+### Column
+```{python}
+# Filter original data for those top 10 countries
+top_10_data_gdp = data_frame_final[sucide_pop_data["country"].isin(top_10_countries_name)]
+
+figline_gdp = px.line(
+    top_10_data_gdp,
+    x="year",
+    y="gdp_percapita",
+    color="country",
+    title="GDP per Capita of Top 10 countries having Highest suicide Rate",
+    labels={"crude_rate_per100k": "Suicides per 100k", "gdp_percapita": "GDP per Capita"},markers= True
+).update_layout(coloraxis_showscale=False,
+    showlegend=False,
+    template="plotly_white"
+    ).update_xaxes(
+        tickangle=45,).update_yaxes(title_font=dict(size=10, family='Arial', color='black'))
+figline_gdp.show()
+```
+
+## Row (height=40%)
+### Column 
+```{python}
+fig_gdp_2015=px.scatter(data_2019_wide,y="crude_rate_per100k_2015", x="gdp_percapita_2019",
+hover_data='country',
+size='pop_2015',
+color='continent_2019',
+title="GDP per Capita vs Suicidal Rate (2015)").update_layout(
+    showlegend=False,
+    template="plotly_white"
+    ).update_xaxes(
+        tickangle=45,
+    ).update_yaxes(title_font=dict(size=10, family='Arial', color='black'))
+fig_gdp_2015.show()
+```
+
+### Column 
+```{python}
+fig_gdp_2019=px.scatter(data_2019_wide,y="crude_rate_per100k_2019", x="gdp_percapita_2019",
+hover_data='country',
+size='pop_2019',
+color='continent_2019',title="GDP per Capita vs Suicidal Rate (2019)" ).update_layout(
+    showlegend=False,
+    template="plotly_white"
+    ).update_xaxes(
+        tickangle=45,
+    ).update_yaxes(title_font=dict(size=10, family='Arial', color='black'))
+fig_gdp_2019.show()
+```
+
+### Column 
+```{python}
+import plotly.express as px
+
+fig_chng_gdp = px.scatter(
+    data_2019_wide,
+    x="perchng_gdp",
+    y="perchng_suicidalrate",
+    hover_name="country",
+    color= "continent_2019",
+    title="GDP vs Suicide Rate: % Change (2015 to 2019)",
+    labels={
+        "perchng_gdp": "% Change in GDP",
+        "perchng_suicidalrate": "% Change in Suicide Rate"
+    }).update_layout(
+    showlegend=False,
+    template="plotly_white"
+)
+fig_chng_gdp.show()
+
+```
+
+## Row {height= "10%"}
+
+# DATA DOWNLOAD
+
+```{python}
+# Display full dataset with itables
+itables.show(data_frame_final, caption="Gapminder Dataset (2007)", buttons=["csvHtml5"])
+```
+
+
+## ABOUT
+About Dataset:
+
+Data source: Gap Minder dataset: https://www.gapminder.org/data/
+Suicide Data: Total Number of estimated deaths from self-inflicted injury
+Source: Suicide data from healthdata via GAPMINDER.ORG
+Population Data: Total Population counts the number of inhabitant in the territory.
+Source: Population data from https://www.gapminder.org/data/documentation/gd003/ via GAPMINDER.ORG
+GDP Data: Gross domestic product per person adjusted for differences in purchasing power(in international Dollars, fixed 2021 prices, PPP based on 2021 ICP)
+Source: https://www.gapminder.org/data/documentation/gd001/ via GAPMINDER.org
